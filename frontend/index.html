@@ -466,6 +466,24 @@
                     </div>
                 </div>
 
+                <!-- Create New Faction -->
+                <div class="neon-container">
+                    <h3>CREATE NEW FACTION</h3>
+                    <form @submit.prevent="createNewFaction" class="faction-create-form">
+                        <div class="input-group">
+                            <label>Faction Name</label>
+                            <input v-model="newFactionName" type="text" placeholder="e.g., Neo Syndicate" required maxlength="50">
+                        </div>
+                        <div class="input-group">
+                            <label>Description (Optional)</label>
+                            <input v-model="newFactionDescription" type="text" placeholder="Brief description of the faction" maxlength="200">
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            ✨ CREATE FACTION
+                        </button>
+                    </form>
+                </div>
+
                 <!-- Faction Credits Modal -->
                 <div v-if="factionCreditsModal" class="modal">
                     <div class="modal-content neon-container">

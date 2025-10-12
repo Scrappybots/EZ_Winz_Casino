@@ -71,6 +71,8 @@ createApp({
             factionCreditsModal: null,
             factionCreditsAmount: 0,
             factionCreditsReason: '',
+            newFactionName: '',
+            newFactionDescription: '',
             
             // Notifications
             toasts: []
@@ -709,6 +711,45 @@ createApp({
                 
                 this.showToast(`Added ¤${this.factionCreditsAmount} to ${data.users_affected} users in ${this.factionCreditsModal}`, 'success');
                 this.factionCreditsModal = null;
+                await this.loadFactions();
+                
+            } catch (err) {
+                this.showToast(err.message, 'error');
+            }
+        },
+        
+        async createNewFaction() {
+            try {
+                // Validate faction name
+                if (!this.newFactionName.trim()) {
+                    throw new Error('Faction name is required');
+                }
+                
+                const response = await fetch(`${API_BASE}/api/admin/factions/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.token}`
+                    },
+                    body: JSON.stringify({
+                        name: this.newFactionName.trim(),
+                        description: this.newFactionDescription.trim()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create faction');
+                }
+                
+                this.showToast(`Faction "${this.newFactionName}" created successfully!`, 'success');
+                
+                // Reset form
+                this.newFactionName = '';
+                this.newFactionDescription = '';
+                
+                // Refresh faction list
                 await this.loadFactions();
                 
             } catch (err) {
