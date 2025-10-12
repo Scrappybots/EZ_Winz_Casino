@@ -77,6 +77,39 @@ def reset_user_password(account_number):
     return jsonify({'message': 'Password reset successfully'})
 
 
+@admin_bp.route('/users/<account_number>/toggle-admin', methods=['POST'])
+@admin_required
+def toggle_admin_status(account_number):
+    """Toggle admin status for a user"""
+    user = User.query.filter_by(account_number=account_number).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Prevent removing own admin access
+    admin = get_current_user()
+    if user.id == admin.id:
+        return jsonify({'error': 'Cannot modify your own admin status'}), 403
+    
+    # Toggle admin status
+    user.is_admin = not user.is_admin
+    
+    # Create audit log
+    audit = AuditLog(
+        admin_user_id=admin.id,
+        action='TOGGLE_ADMIN',
+        target_user_id=user.id,
+        details=f"Admin status {'granted to' if user.is_admin else 'revoked from'} {user.character_name}"
+    )
+    
+    db.session.add(audit)
+    db.session.commit()
+    
+    return jsonify({
+        'message': f"Admin status {'granted' if user.is_admin else 'revoked'}",
+        'user': user.to_dict()
+    })
+
+
 @admin_bp.route('/users/<account_number>/adjust-balance', methods=['POST'])
 @admin_required
 def adjust_balance(account_number):

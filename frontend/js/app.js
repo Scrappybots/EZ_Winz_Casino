@@ -423,6 +423,38 @@ createApp({
             }
         },
         
+        async toggleAdminStatus(user) {
+            const action = user.is_admin ? 'revoke admin from' : 'grant admin to';
+            if (!confirm(`Are you sure you want to ${action} ${user.character_name}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(
+                    `${API_BASE}/api/admin/users/${user.account_number}/toggle-admin`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    }
+                );
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to update admin status');
+                }
+                
+                this.showToast(data.message, 'success');
+                await this.searchUsers();
+                
+            } catch (err) {
+                this.showToast(err.message, 'error');
+            }
+        },
+        
         async loadApiKeys() {
             try {
                 const response = await fetch(`${API_BASE}/api/admin/api-keys`, {

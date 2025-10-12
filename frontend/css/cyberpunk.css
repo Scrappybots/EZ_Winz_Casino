@@ -306,6 +306,26 @@ select:focus {
     color: white;
 }
 
+.btn-success {
+    border-color: #00ff88;
+    color: #00ff88;
+}
+
+.btn-success:hover {
+    background: #00ff88;
+    color: #000;
+}
+
+.btn-warning {
+    border-color: #ffaa00;
+    color: #ffaa00;
+}
+
+.btn-warning:hover {
+    background: #ffaa00;
+    color: #000;
+}
+
 button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -708,14 +728,35 @@ button:disabled {
 .user-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 8px;
+    gap: 10px;
 }
 
 .user-details {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
     color: var(--text-secondary);
+}
+
+.user-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-badge {
+    padding: 2px 8px;
+    background: linear-gradient(135deg, #ff00ff, #00ffff);
+    color: #000;
+    font-size: 0.7em;
+    font-weight: bold;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 /* Modal */

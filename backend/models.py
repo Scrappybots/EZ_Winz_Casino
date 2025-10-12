@@ -33,7 +33,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     account_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
     faction = db.Column(db.String(50), nullable=True)
-    balance = db.Column(db.Float, default=0.0, nullable=False)
+    balance = db.Column(db.Float, default=1000.0, nullable=False)  # New users start with $1000
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     

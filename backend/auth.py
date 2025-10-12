@@ -27,13 +27,13 @@ def register_user(character_name, password, faction=None):
     if User.query.filter_by(character_name=character_name).first():
         return None, "Character name already exists"
     
-    # Create new user
+    # Create new user with $1000 starting balance
     user = User(
         character_name=character_name,
         password_hash=hash_password(password),
         account_number=generate_account_number(),
         faction=faction,
-        balance=0.0
+        balance=1000.0  # Welcome bonus!
     )
     
     db.session.add(user)
