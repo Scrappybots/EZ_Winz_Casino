@@ -16,7 +16,7 @@ def test_profile_features():
     print("\n1. Logging in as admin...")
     response = requests.post(f"{BASE_URL}/v1/auth/login", json={
         "character_name": "admin",
-        "password": "admin123"
+        "password": "neotropolis2025"
     })
     if response.status_code == 200:
         data = response.json()
@@ -47,8 +47,8 @@ def test_profile_features():
     response = requests.put(f"{BASE_URL}/v1/account/password",
         headers=headers,
         json={
-            "current_password": "admin123",
-            "new_password": "admin123new"
+            "current_password": "neotropolis2025",
+            "new_password": "neotropolis2025new"
         }
     )
     if response.status_code == 200:
@@ -59,8 +59,8 @@ def test_profile_features():
         response = requests.put(f"{BASE_URL}/v1/account/password",
             headers=headers,
             json={
-                "current_password": "admin123new",
-                "new_password": "admin123"
+                "current_password": "neotropolis2025new",
+                "new_password": "neotropolis2025"
             }
         )
         if response.status_code == 200:
@@ -149,7 +149,7 @@ def main():
             print("=" * 60)
             print("\nNext steps:")
             print("1. Open http://localhost:8080 in your browser")
-            print("2. Login as admin/admin123")
+            print("2. Login as admin/neotropolis2025")
             print("3. Navigate to Profile tab to test UI")
             print("4. Navigate to Admin tab to test faction management")
             print("5. Click 'Download CSV Export' to test export\n")
