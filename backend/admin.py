@@ -322,12 +322,15 @@ def create_faction():
     if len(name) > 50:
         return jsonify({'error': 'Faction name must be 50 characters or less'}), 400
     
-    # Check if faction name already exists
-    existing_faction = User.query.filter(
-        db.func.lower(User.faction) == name.lower()
-    ).first()
+    # Check if faction name already exists (case-insensitive)
+    # Get all distinct faction names from users
+    existing_factions = db.session.query(User.faction).filter(
+        User.faction.isnot(None)
+    ).distinct().all()
     
-    if existing_faction:
+    existing_faction_names = [f[0].lower() for f in existing_factions if f[0]]
+    
+    if name.lower() in existing_faction_names:
         return jsonify({'error': f'Faction "{name}" already exists'}), 400
     
     # Create audit log for new faction creation
