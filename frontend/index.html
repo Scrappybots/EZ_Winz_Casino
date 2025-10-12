@@ -81,6 +81,9 @@
                     <button @click="currentView = 'casino'" :class="{ active: currentView === 'casino' }">
                         🎰 CASINO
                     </button>
+                    <button @click="currentView = 'profile'" :class="{ active: currentView === 'profile' }">
+                        👤 PROFILE
+                    </button>
                     <button v-if="user.is_admin" @click="currentView = 'admin'" :class="{ active: currentView === 'admin' }">
                         ⚙️ ADMIN
                     </button>
@@ -157,6 +160,76 @@
                                 <div v-if="tx.memo" class="tx-memo">{{ tx.memo }}</div>
                                 <div class="tx-time">{{ formatTimestamp(tx.timestamp) }}</div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile View -->
+            <div v-if="currentView === 'profile'" class="view-container">
+                <h2 class="section-title">USER PROFILE</h2>
+                
+                <div class="neon-container">
+                    <h3>Profile Picture</h3>
+                    <div class="profile-picture-display">
+                        <div class="current-profile-pic">{{ user.profile_picture || '👤' }}</div>
+                        <p style="color: var(--text-secondary); margin-bottom: 10px;">Choose an emoji:</p>
+                        <div class="emoji-grid">
+                            <div v-for="emoji in profileEmojis" :key="emoji" @click="selectProfilePicture(emoji); updateProfile()" class="emoji-option">
+                                {{ emoji }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="neon-container">
+                    <h3>Faction</h3>
+                    <select v-model="user.faction" @change="updateProfile" class="faction-select">
+                        <option value="">No Faction</option>
+                        <option value="CorpSec">CorpSec</option>
+                        <option value="Runners">Runners</option>
+                        <option value="Syndicate">Syndicate</option>
+                        <option value="Technocrats">Technocrats</option>
+                    </select>
+                </div>
+
+                <div class="neon-container">
+                    <h3>Change Password</h3>
+                    <form @submit.prevent="changePassword" class="password-form">
+                        <div class="input-group">
+                            <label>Current Password</label>
+                            <input v-model="passwordForm.currentPassword" type="password" required>
+                        </div>
+                        <div class="input-group">
+                            <label>New Password</label>
+                            <input v-model="passwordForm.newPassword" type="password" required minlength="6">
+                        </div>
+                        <div class="input-group">
+                            <label>Confirm New Password</label>
+                            <input v-model="passwordForm.confirmPassword" type="password" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn-primary">UPDATE PASSWORD</button>
+                    </form>
+                </div>
+
+                <div class="neon-container">
+                    <h3>Account Information</h3>
+                    <div class="account-info-grid">
+                        <div class="info-item">
+                            <label>Character Name</label>
+                            <div class="value">{{ user.character_name }}</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Account Number</label>
+                            <div class="value">{{ user.account_number }}</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Balance</label>
+                            <div class="value">¤{{ formatBalance(user.balance) }}</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Member Since</label>
+                            <div class="value">{{ new Date(user.created_at).toLocaleDateString() }}</div>
                         </div>
                     </div>
                 </div>
@@ -374,6 +447,54 @@
                             </span>
                         </div>
                     </div>
+                </div>
+
+                <!-- Faction Management -->
+                <div class="neon-container">
+                    <h3>FACTION MANAGEMENT</h3>
+                    <button @click="loadFactions" class="btn-primary">REFRESH FACTIONS</button>
+                    <div class="faction-list">
+                        <div v-for="faction in factions" :key="faction.faction" class="faction-card">
+                            <div class="faction-header">
+                                <strong>{{ faction.faction }}</strong>
+                                <span class="faction-stats">{{ faction.user_count }} users • ¤{{ formatBalance(faction.total_balance) }}</span>
+                            </div>
+                            <button @click="openAddFactionCredits(faction.faction)" class="btn-small btn-success">
+                                ADD CREDITS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Faction Credits Modal -->
+                <div v-if="factionCreditsModal" class="modal">
+                    <div class="modal-content neon-container">
+                        <h3>ADD CREDITS TO FACTION</h3>
+                        <p>Faction: <strong>{{ factionCreditsModal }}</strong></p>
+                        <form @submit.prevent="addFactionCredits">
+                            <div class="input-group">
+                                <label>Amount to Add</label>
+                                <input v-model.number="factionCreditsAmount" type="number" step="0.01" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Reason</label>
+                                <input v-model="factionCreditsReason" type="text" placeholder="e.g., Faction bonus" required>
+                            </div>
+                            <div class="button-group">
+                                <button type="submit" class="btn-primary">CONFIRM</button>
+                                <button type="button" @click="factionCreditsModal = null" class="btn-secondary">CANCEL</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Export Users -->
+                <div class="neon-container">
+                    <h3>DATA EXPORT</h3>
+                    <p>Export all user accounts and balances to CSV file</p>
+                    <button @click="exportUsersCSV" class="btn-primary">
+                        📥 DOWNLOAD CSV EXPORT
+                    </button>
                 </div>
             </div>
         </div>

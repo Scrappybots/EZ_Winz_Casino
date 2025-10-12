@@ -51,6 +51,14 @@ createApp({
             lastResult: null,
             showPaytable: false,
             
+            // Profile
+            profileEmojis: ['😎', '🤖', '👾', '🦾', '💀', '🔥', '⚡', '💎', '🌟', '🎮', '🎯', '🚀', '🔫', '💊', '🌀', '👁️'],
+            passwordForm: {
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+            },
+            
             // Admin
             adminSearch: '',
             searchResults: [],
@@ -59,6 +67,10 @@ createApp({
             adjustReason: '',
             apiKeys: [],
             casinoGames: [],
+            factions: [],
+            factionCreditsModal: null,
+            factionCreditsAmount: 0,
+            factionCreditsReason: '',
             
             // Notifications
             toasts: []
@@ -567,6 +579,168 @@ createApp({
                 }
                 
                 this.showToast('Game configuration updated', 'success');
+                
+            } catch (err) {
+                this.showToast(err.message, 'error');
+            }
+        },
+        
+        // ============ Profile Management ============
+        selectProfilePicture(emoji) {
+            this.user.profile_picture = emoji;
+        },
+        
+        async updateProfile() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/account/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.token}`
+                    },
+                    body: JSON.stringify({
+                        faction: this.user.faction,
+                        profile_picture: this.user.profile_picture
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to update profile');
+                }
+                
+                this.showToast('Profile updated successfully', 'success');
+                
+            } catch (err) {
+                this.showToast(err.message, 'error');
+            }
+        },
+        
+        async changePassword() {
+            try {
+                // Validate passwords match
+                if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) {
+                    throw new Error('New passwords do not match');
+                }
+                
+                if (this.passwordForm.newPassword.length < 8) {
+                    throw new Error('Password must be at least 8 characters');
+                }
+                
+                const response = await fetch(`${API_BASE}/api/v1/account/password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.token}`
+                    },
+                    body: JSON.stringify({
+                        current_password: this.passwordForm.currentPassword,
+                        new_password: this.passwordForm.newPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to change password');
+                }
+                
+                this.showToast('Password changed successfully', 'success');
+                
+                // Reset form
+                this.passwordForm = {
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: ''
+                };
+                
+            } catch (err) {
+                this.showToast(err.message, 'error');
+            }
+        },
+        
+        // ============ Faction Management (Admin) ============
+        async loadFactions() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/factions/list`, {
+                    headers: { 'Authorization': `Bearer ${this.token}` }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load factions');
+                }
+                
+                this.factions = data.factions || [];
+                this.showToast('Factions loaded', 'success');
+                
+            } catch (err) {
+                this.showToast(err.message, 'error');
+            }
+        },
+        
+        openAddFactionCredits(faction) {
+            this.factionCreditsModal = faction;
+            this.factionCreditsAmount = 0;
+            this.factionCreditsReason = '';
+        },
+        
+        async addFactionCredits() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/factions/${this.factionCreditsModal}/add-credits`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.token}`
+                    },
+                    body: JSON.stringify({
+                        amount: this.factionCreditsAmount,
+                        reason: this.factionCreditsReason
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to add credits');
+                }
+                
+                this.showToast(`Added ¤${this.factionCreditsAmount} to ${data.users_affected} users in ${this.factionCreditsModal}`, 'success');
+                this.factionCreditsModal = null;
+                await this.loadFactions();
+                
+            } catch (err) {
+                this.showToast(err.message, 'error');
+            }
+        },
+        
+        // ============ User Export (Admin) ============
+        async exportUsersCSV() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/users/export`, {
+                    headers: { 'Authorization': `Bearer ${this.token}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to export users');
+                }
+                
+                // Get the blob data
+                const blob = await response.blob();
+                
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                this.showToast('Export downloaded', 'success');
                 
             } catch (err) {
                 this.showToast(err.message, 'error');

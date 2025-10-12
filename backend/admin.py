@@ -283,3 +283,131 @@ def get_audit_logs():
         'limit': limit,
         'offset': offset
     })
+
+
+@admin_bp.route('/factions/list', methods=['GET'])
+@admin_required
+def get_factions():
+    """Get list of all factions with user counts"""
+    from sqlalchemy import func
+    
+    factions = db.session.query(
+        User.faction,
+        func.count(User.id).label('user_count'),
+        func.sum(User.balance).label('total_balance')
+    ).group_by(User.faction).all()
+    
+    faction_list = []
+    for faction, count, total_bal in factions:
+        faction_list.append({
+            'faction': faction if faction else 'None',
+            'user_count': count,
+            'total_balance': round(total_bal, 2) if total_bal else 0
+        })
+    
+    return jsonify({'factions': faction_list})
+
+
+@admin_bp.route('/factions/<faction>/add-credits', methods=['POST'])
+@admin_required
+def add_faction_credits(faction):
+    """Add credits to all users in a faction"""
+    data = request.get_json()
+    amount = data.get('amount')
+    reason = data.get('reason', 'Faction bonus')
+    
+    if not amount or amount <= 0:
+        return jsonify({'error': 'Valid amount required'}), 400
+    
+    # Handle 'None' faction
+    if faction.lower() == 'none':
+        faction = None
+    
+    # Get all users in faction
+    users = User.query.filter_by(faction=faction).all()
+    
+    if not users:
+        return jsonify({'error': 'No users found in this faction'}), 404
+    
+    # Add credits to each user
+    admin = get_current_user()
+    affected_count = 0
+    
+    for user in users:
+        # Skip system accounts
+        if user.account_number.startswith('NC-SYST') or user.account_number.startswith('NC-CASA'):
+            continue
+        
+        user.balance += amount
+        affected_count += 1
+    
+    # Create audit log
+    audit = AuditLog(
+        admin_user_id=admin.id,
+        action='FACTION_CREDITS',
+        details=f"Added ¤{amount} to {affected_count} users in faction '{faction or 'None'}': {reason}"
+    )
+    db.session.add(audit)
+    db.session.commit()
+    
+    return jsonify({
+        'message': f'Added ¤{amount} to {affected_count} users',
+        'affected_users': affected_count,
+        'faction': faction or 'None'
+    })
+
+
+@admin_bp.route('/users/export', methods=['GET'])
+@admin_required
+def export_users_csv():
+    """Export all users to CSV"""
+    import csv
+    from io import StringIO
+    from flask import make_response
+    
+    # Get all users (excluding system accounts)
+    users = User.query.filter(
+        ~User.account_number.in_(['NC-SYST-EM00', 'NC-CASA-0000'])
+    ).order_by(User.character_name).all()
+    
+    # Create CSV in memory
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow([
+        'Character Name',
+        'Account Number',
+        'Balance',
+        'Faction',
+        'Is Admin',
+        'Created At'
+    ])
+    
+    # Write user data
+    for user in users:
+        writer.writerow([
+            user.character_name,
+            user.account_number,
+            f'{user.balance:.2f}',
+            user.faction or 'None',
+            'Yes' if user.is_admin else 'No',
+            user.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        ])
+    
+    # Create response
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = 'attachment; filename=neobank_users_export.csv'
+    
+    # Log export
+    admin = get_current_user()
+    audit = AuditLog(
+        admin_user_id=admin.id,
+        action='USER_EXPORT',
+        details=f"Exported {len(users)} users to CSV"
+    )
+    db.session.add(audit)
+    db.session.commit()
+    
+    return response

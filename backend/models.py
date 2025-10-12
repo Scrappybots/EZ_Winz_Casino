@@ -35,6 +35,7 @@ class User(db.Model):
     faction = db.Column(db.String(50), nullable=True)
     balance = db.Column(db.Float, default=1000.0, nullable=False)  # New users start with $1000
     is_admin = db.Column(db.Boolean, default=False)
+    profile_picture = db.Column(db.String(255), nullable=True)  # URL or emoji for profile picture
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -53,7 +54,8 @@ class User(db.Model):
             'account_number': self.account_number,
             'faction': self.faction,
             'created_at': self.created_at.isoformat(),
-            'is_admin': self.is_admin
+            'is_admin': self.is_admin,
+            'profile_picture': self.profile_picture
         }
         if include_balance:
             data['balance'] = round(self.balance, 2)

@@ -134,6 +134,58 @@ def search_user_transactions():
     })
 
 
+@app.route('/api/v1/account/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    """Update user profile (faction, profile picture)"""
+    user = get_current_user()
+    data = request.get_json()
+    
+    # Update faction
+    if 'faction' in data:
+        user.faction = data['faction'] if data['faction'] else None
+    
+    # Update profile picture (emoji or URL)
+    if 'profile_picture' in data:
+        user.profile_picture = data['profile_picture'] if data['profile_picture'] else None
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Profile updated successfully',
+        'account': user.to_dict()
+    })
+
+
+@app.route('/api/v1/account/password', methods=['PUT'])
+@jwt_required()
+@limiter.limit("5 per hour")
+def change_password():
+    """Change user password"""
+    user = get_current_user()
+    data = request.get_json()
+    
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    
+    if not current_password or not new_password:
+        return jsonify({'error': 'Current and new password required'}), 400
+    
+    # Verify current password
+    from .auth import verify_password, hash_password
+    if not verify_password(current_password, user.password_hash):
+        return jsonify({'error': 'Current password is incorrect'}), 401
+    
+    if len(new_password) < 6:
+        return jsonify({'error': 'New password must be at least 6 characters'}), 400
+    
+    # Update password
+    user.password_hash = hash_password(new_password)
+    db.session.commit()
+    
+    return jsonify({'message': 'Password changed successfully'})
+
+
 @app.route('/api/v1/transactions', methods=['POST'])
 @jwt_required()
 @limiter.limit("30 per minute")
