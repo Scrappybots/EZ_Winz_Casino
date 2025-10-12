@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en" class="dark-mode">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1A0033">
+    <title>NeoBank & Chrome Slots - Neotropolis</title>
+    <link rel="stylesheet" href="css/cyberpunk.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div v-if="loading" class="loading-screen">
+            <div class="glitch-text" data-text="INITIALIZING">INITIALIZING</div>
+            <div class="loading-bar"></div>
+        </div>
+
+        <!-- Login/Register Screen -->
+        <div v-if="!user && !loading" class="auth-screen">
+            <div class="neon-container">
+                <h1 class="glitch-text" data-text="NEOTROPOLIS">NEOTROPOLIS</h1>
+                <h2 class="subtitle">NeoBank & Chrome Slots</h2>
+                
+                <div class="tabs">
+                    <button @click="authMode = 'login'" :class="{ active: authMode === 'login' }">LOGIN</button>
+                    <button @click="authMode = 'register'" :class="{ active: authMode === 'register' }">REGISTER</button>
+                </div>
+
+                <!-- Login Form -->
+                <form v-if="authMode === 'login'" @submit.prevent="login" class="auth-form">
+                    <div class="input-group">
+                        <label>Character Name</label>
+                        <input v-model="loginForm.character_name" type="text" required placeholder="Enter your character name">
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input v-model="loginForm.password" type="password" required placeholder="Enter your password">
+                    </div>
+                    <button type="submit" class="btn-primary">ACCESS SYSTEM</button>
+                </form>
+
+                <!-- Register Form -->
+                <form v-if="authMode === 'register'" @submit.prevent="register" class="auth-form">
+                    <div class="input-group">
+                        <label>Character Name</label>
+                        <input v-model="registerForm.character_name" type="text" required placeholder="Choose a character name">
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input v-model="registerForm.password" type="password" required minlength="6" placeholder="Minimum 6 characters">
+                    </div>
+                    <div class="input-group">
+                        <label>Faction (Optional)</label>
+                        <select v-model="registerForm.faction">
+                            <option value="">No Faction</option>
+                            <option value="CorpSec">CorpSec</option>
+                            <option value="Runners">Runners</option>
+                            <option value="Syndicate">Syndicate</option>
+                            <option value="Technocrats">Technocrats</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary">CREATE ACCOUNT</button>
+                </form>
+
+                <div v-if="error" class="error-message">{{ error }}</div>
+            </div>
+        </div>
+
+        <!-- Main Application (after login) -->
+        <div v-if="user && !loading" class="main-app">
+            <!-- Navigation -->
+            <nav class="top-nav">
+                <div class="nav-brand">NEOTROPOLIS 2025</div>
+                <div class="nav-links">
+                    <button @click="currentView = 'bank'" :class="{ active: currentView === 'bank' }">
+                        💳 BANK
+                    </button>
+                    <button @click="currentView = 'casino'" :class="{ active: currentView === 'casino' }">
+                        🎰 CASINO
+                    </button>
+                    <button v-if="user.is_admin" @click="currentView = 'admin'" :class="{ active: currentView === 'admin' }">
+                        ⚙️ ADMIN
+                    </button>
+                    <button @click="logout" class="logout-btn">EXIT</button>
+                </div>
+            </nav>
+
+            <!-- Bank View -->
+            <div v-if="currentView === 'bank'" class="view-container">
+                <div class="balance-display">
+                    <div class="balance-label">ACCOUNT BALANCE</div>
+                    <div class="balance-amount">¤{{ formatBalance(user.balance) }}</div>
+                </div>
+
+                <div class="account-info neon-container">
+                    <h3>CITIZEN REGISTRY</h3>
+                    <div class="info-row">
+                        <span class="label">Name:</span>
+                        <span class="value">{{ user.character_name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Account:</span>
+                        <span class="value account-number">{{ user.account_number }}</span>
+                        <button @click="copyToClipboard(user.account_number)" class="btn-small">COPY</button>
+                    </div>
+                    <div class="info-row" v-if="user.faction">
+                        <span class="label">Faction:</span>
+                        <span class="value">{{ user.faction }}</span>
+                    </div>
+                </div>
+
+                <!-- Transfer Form -->
+                <div class="neon-container">
+                    <h3>TRANSFER FUNDS</h3>
+                    <form @submit.prevent="transfer" class="transfer-form">
+                        <div class="input-group">
+                            <label>Recipient Account</label>
+                            <input v-model="transferForm.to_account" type="text" required placeholder="NC-XXXX-XXXX">
+                        </div>
+                        <div class="input-group">
+                            <label>Amount</label>
+                            <input v-model.number="transferForm.amount" type="number" step="0.01" min="0.01" required placeholder="0.00">
+                        </div>
+                        <div class="input-group">
+                            <label>Memo (Optional)</label>
+                            <input v-model="transferForm.memo" type="text" maxlength="140" placeholder="Transaction note">
+                        </div>
+                        <button type="submit" class="btn-primary">SEND CREDITS</button>
+                    </form>
+                </div>
+
+                <!-- Transaction History -->
+                <div class="neon-container">
+                    <h3>TRANSACTION LOG</h3>
+                    <div class="search-box">
+                        <input v-model="searchQuery" @input="searchTransactions" type="text" placeholder="Search transactions...">
+                    </div>
+                    <div class="transaction-list">
+                        <div v-if="transactions.length === 0" class="no-data">No transactions yet</div>
+                        <div v-for="tx in transactions" :key="tx.id" class="transaction-item">
+                            <div class="tx-header">
+                                <span :class="['tx-type', tx.to_account === user.account_number ? 'incoming' : 'outgoing']">
+                                    {{ tx.to_account === user.account_number ? '↓ INCOMING' : '↑ OUTGOING' }}
+                                </span>
+                                <span class="tx-amount" :class="{ positive: tx.to_account === user.account_number }">
+                                    {{ tx.to_account === user.account_number ? '+' : '-' }}¤{{ formatBalance(tx.amount) }}
+                                </span>
+                            </div>
+                            <div class="tx-details">
+                                <div>{{ tx.to_account === user.account_number ? 'From' : 'To' }}: 
+                                    <strong>{{ tx.to_account === user.account_number ? tx.from_name : tx.to_name }}</strong>
+                                    ({{ tx.to_account === user.account_number ? tx.from_account : tx.to_account }})
+                                </div>
+                                <div v-if="tx.memo" class="tx-memo">{{ tx.memo }}</div>
+                                <div class="tx-time">{{ formatTimestamp(tx.timestamp) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Casino View -->
+            <div v-if="currentView === 'casino'" class="view-container">
+                <div class="balance-display">
+                    <div class="balance-label">ACCOUNT BALANCE</div>
+                    <div class="balance-amount">¤{{ formatBalance(user.balance) }}</div>
+                </div>
+
+                <div class="casino-selector">
+                    <button @click="selectedGame = 'glitch'" :class="{ active: selectedGame === 'glitch' }" class="game-btn">
+                        <h3>GLITCH GRID</h3>
+                        <p>3-Reel Classic • Simple Payline</p>
+                    </button>
+                    <button @click="selectedGame = 'starlight'" :class="{ active: selectedGame === 'starlight' }" class="game-btn">
+                        <h3>STARLIGHT SMUGGLER</h3>
+                        <p>5-Reel • 9 Paylines • Bonus Spins</p>
+                    </button>
+                </div>
+
+                <!-- Glitch Grid -->
+                <div v-if="selectedGame === 'glitch'" class="slot-machine glitch-grid">
+                    <h2 class="game-title glitch-text" data-text="GLITCH GRID">GLITCH GRID</h2>
+                    <div class="slot-reels">
+                        <div class="reel" v-for="(symbol, index) in glitchReels" :key="index">
+                            <div class="symbol">{{ symbol }}</div>
+                        </div>
+                    </div>
+                    <div class="bet-controls">
+                        <button @click="decreaseBet('glitch')" class="btn-control">-</button>
+                        <div class="bet-display">BET: ¤{{ glitchBet }}</div>
+                        <button @click="increaseBet('glitch')" class="btn-control">+</button>
+                    </div>
+                    <button @click="spinGlitch" :disabled="spinning" class="btn-spin">
+                        {{ spinning ? 'SPINNING...' : 'SPIN' }}
+                    </button>
+                    <div v-if="lastResult" class="result-display" :class="{ win: lastResult.win_amount > 0 }">
+                        <div v-if="lastResult.win_amount > 0">
+                            🎉 WIN! {{ lastResult.win_multiplier }}x = ¤{{ formatBalance(lastResult.win_amount) }}
+                        </div>
+                        <div v-else>
+                            Try again!
+                        </div>
+                    </div>
+                    <button @click="showPaytable = !showPaytable" class="btn-secondary">
+                        {{ showPaytable ? 'HIDE' : 'SHOW' }} PAYTABLE
+                    </button>
+                    <div v-if="showPaytable" class="paytable neon-container">
+                        <h4>PAYTABLE</h4>
+                        <div class="payout-row">🏢 🏢 🏢 = 100x</div>
+                        <div class="payout-row">💀 💀 💀 = 50x</div>
+                        <div class="payout-row">㊙️ ㊙️ ㊙️ = 40x</div>
+                        <div class="payout-row">01 01 01 = 30x</div>
+                        <div class="payout-row">🔌 🔌 🔌 = 20x</div>
+                        <div class="payout-row">🏢 = WILD (substitutes any)</div>
+                    </div>
+                </div>
+
+                <!-- Starlight Smuggler -->
+                <div v-if="selectedGame === 'starlight'" class="slot-machine starlight-smuggler">
+                    <h2 class="game-title glitch-text" data-text="STARLIGHT SMUGGLER">STARLIGHT SMUGGLER</h2>
+                    <div class="slot-grid">
+                        <div v-for="(row, rowIdx) in starlightGrid" :key="rowIdx" class="grid-row">
+                            <div v-for="(symbol, colIdx) in row" :key="colIdx" class="symbol">
+                                {{ symbol }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bet-controls">
+                        <button @click="decreaseBet('starlight')" class="btn-control">-</button>
+                        <div class="bet-display">
+                            <div>BET/LINE: ¤{{ starlightBet }}</div>
+                            <div class="small">Total: ¤{{ starlightBet * 9 }}</div>
+                        </div>
+                        <button @click="increaseBet('starlight')" class="btn-control">+</button>
+                    </div>
+                    <button @click="spinStarlight" :disabled="spinning" class="btn-spin">
+                        {{ spinning ? 'SPINNING...' : 'SPIN' }}
+                    </button>
+                    <div v-if="lastResult" class="result-display" :class="{ win: lastResult.win_amount > 0 }">
+                        <div v-if="lastResult.win_amount > 0">
+                            🎉 WIN on {{ lastResult.winning_lines.length }} line(s)! 
+                            {{ lastResult.win_multiplier }}x = ¤{{ formatBalance(lastResult.win_amount) }}
+                        </div>
+                        <div v-if="lastResult.bonus_spins > 0" class="bonus-alert">
+                            ⭐ BONUS! {{ lastResult.bonus_spins }} FREE SPINS AWARDED!
+                        </div>
+                        <div v-if="lastResult.win_amount === 0 && !lastResult.bonus_spins">
+                            Try again!
+                        </div>
+                    </div>
+                    <button @click="showPaytable = !showPaytable" class="btn-secondary">
+                        {{ showPaytable ? 'HIDE' : 'SHOW' }} PAYTABLE
+                    </button>
+                    <div v-if="showPaytable" class="paytable neon-container">
+                        <h4>PAYTABLE (per line)</h4>
+                        <div class="payout-row">💎 x5 = 250x | x4 = 75x | x3 = 20x</div>
+                        <div class="payout-row">🚀 x5 = 200x | x4 = 50x | x3 = 15x</div>
+                        <div class="payout-row">🗺️ x5 = 150x | x4 = 40x | x3 = 12x</div>
+                        <div class="payout-row">🔫 x5 = 100x | x4 = 30x | x3 = 10x</div>
+                        <div class="payout-row">⭐ x5 = 80x | x4 = 25x | x3 = 8x</div>
+                        <div class="payout-row">🌀 x3+ anywhere = 5 FREE SPINS!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin View (if admin) -->
+            <div v-if="currentView === 'admin' && user.is_admin" class="view-container admin-panel">
+                <h2 class="section-title">ADMIN CONTROL PANEL</h2>
+                
+                <!-- User Search -->
+                <div class="neon-container">
+                    <h3>USER LOOKUP</h3>
+                    <div class="search-box">
+                        <input v-model="adminSearch" @input="searchUsers" type="text" placeholder="Search by name or account...">
+                    </div>
+                    <div class="user-results">
+                        <div v-for="u in searchResults" :key="u.account_number" class="user-card">
+                            <div class="user-header">
+                                <strong>{{ u.character_name }}</strong>
+                                <span class="account-number">{{ u.account_number }}</span>
+                            </div>
+                            <div class="user-details">
+                                Balance: ¤{{ formatBalance(u.balance) }}
+                                <button @click="openAdjustBalance(u)" class="btn-small">ADJUST</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Balance Adjustment Modal -->
+                <div v-if="adjustingUser" class="modal">
+                    <div class="modal-content neon-container">
+                        <h3>ADJUST BALANCE</h3>
+                        <p>Account: {{ adjustingUser.account_number }} ({{ adjustingUser.character_name }})</p>
+                        <p>Current Balance: ¤{{ formatBalance(adjustingUser.balance) }}</p>
+                        <form @submit.prevent="adjustBalance">
+                            <div class="input-group">
+                                <label>Amount (+ to credit, - to debit)</label>
+                                <input v-model.number="adjustAmount" type="number" step="0.01" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Reason</label>
+                                <input v-model="adjustReason" type="text" required>
+                            </div>
+                            <div class="button-group">
+                                <button type="submit" class="btn-primary">CONFIRM</button>
+                                <button type="button" @click="adjustingUser = null" class="btn-secondary">CANCEL</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- API Keys -->
+                <div class="neon-container">
+                    <h3>API KEY MANAGEMENT</h3>
+                    <button @click="createApiKey" class="btn-primary">GENERATE NEW KEY</button>
+                    <div class="api-key-list">
+                        <div v-for="key in apiKeys" :key="key.id" class="api-key-item">
+                            <div class="key-info">
+                                <code>{{ key.key_value }}</code>
+                                <span class="key-desc">{{ key.description }}</span>
+                            </div>
+                            <button @click="revokeApiKey(key.id)" class="btn-danger">REVOKE</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Casino Controls -->
+                <div class="neon-container">
+                    <h3>CASINO ODDS CONFIGURATION</h3>
+                    <p style="color: #888; margin-bottom: 15px; font-size: 0.9em;">
+                        Control the Return-To-Player (RTP) percentage. Higher = More player-friendly. 
+                        Real casinos: 85-96% | Recommended generous setting: 98-105%
+                    </p>
+                    <div v-for="game in casinoGames" :key="game.game_name" class="game-control">
+                        <div class="game-info">
+                            <strong>{{ game.game_name.toUpperCase().replace('_', ' ') }}</strong>
+                            <label>
+                                <input type="checkbox" v-model="game.is_enabled" @change="updateGameConfig(game)">
+                                Enabled
+                            </label>
+                        </div>
+                        <div class="payout-control">
+                            <label>RTP (Return To Player) %:</label>
+                            <input type="number" v-model.number="game.payout_percentage" @change="updateGameConfig(game)" min="50" max="150" step="0.5">
+                            <span class="payout-indicator" :class="{
+                                'payout-low': game.payout_percentage < 85,
+                                'payout-normal': game.payout_percentage >= 85 && game.payout_percentage < 98,
+                                'payout-generous': game.payout_percentage >= 98 && game.payout_percentage < 105,
+                                'payout-very-generous': game.payout_percentage >= 105
+                            }">
+                                {{ game.payout_percentage < 85 ? '🔴 Very Tight' : 
+                                   game.payout_percentage < 98 ? '🟡 Standard Casino' :
+                                   game.payout_percentage < 105 ? '🟢 Player Friendly' : '💚 Very Generous' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container">
+            <div v-for="(toast, index) in toasts" :key="index" class="toast" :class="toast.type">
+                {{ toast.message }}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

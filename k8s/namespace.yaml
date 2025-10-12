@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: neotropolis
+  labels:
+    name: neotropolis
+    environment: production

@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: neobank-postgres
+    environment:
+      - POSTGRES_USER=neobank
+      - POSTGRES_PASSWORD=neobank_dev_password
+      - POSTGRES_DB=neobank
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neobank"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  neobank:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: neobank-app
+    ports:
+      - "8080:5000"
+    environment:
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - DATABASE_URL=postgresql://neobank:neobank_dev_password@postgres:5432/neobank
+      - JWT_EXPIRY_HOURS=24
+      - RATE_LIMIT_PER_MINUTE=60
+      - FLASK_DEBUG=False
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  postgres-data:
+    driver: local
