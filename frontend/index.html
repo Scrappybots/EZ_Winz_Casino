@@ -281,16 +281,26 @@
                             <div class="user-header">
                                 <strong>{{ u.character_name }}</strong>
                                 <span class="account-number">{{ u.account_number }}</span>
-                                <span v-if="u.is_admin" class="admin-badge">ADMIN</span>
+                                <span v-if="u.is_admin" class="admin-badge">⭐ ADMIN</span>
                             </div>
-                            <div class="user-details">
-                                <div>Balance: ¤{{ formatBalance(u.balance) }}</div>
-                                <div class="user-actions">
-                                    <button @click="openAdjustBalance(u)" class="btn-small">ADJUST BALANCE</button>
-                                    <button @click="toggleAdminStatus(u)" class="btn-small" :class="{'btn-warning': u.is_admin, 'btn-success': !u.is_admin}">
-                                        {{ u.is_admin ? 'REVOKE ADMIN' : 'MAKE ADMIN' }}
-                                    </button>
+                            <div class="user-info-row">
+                                <div class="info-item">
+                                    <label>Balance:</label>
+                                    <span>¤{{ formatBalance(u.balance) }}</span>
                                 </div>
+                                <div class="info-item">
+                                    <label>Faction:</label>
+                                    <span>{{ u.faction || 'None' }}</span>
+                                </div>
+                            </div>
+                            <div class="user-actions">
+                                <button @click="openAdjustBalance(u)" class="btn-small btn-primary">
+                                    💰 ADJUST BALANCE
+                                </button>
+                                <label class="admin-toggle">
+                                    <input type="checkbox" :checked="u.is_admin" @change="toggleAdminStatus(u)" :disabled="u.account_number === user.account_number">
+                                    <span class="checkbox-label">Admin Privileges</span>
+                                </label>
                             </div>
                         </div>
                     </div>

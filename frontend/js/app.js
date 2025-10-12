@@ -424,8 +424,18 @@ createApp({
         },
         
         async toggleAdminStatus(user) {
-            const action = user.is_admin ? 'revoke admin from' : 'grant admin to';
-            if (!confirm(`Are you sure you want to ${action} ${user.character_name}?`)) {
+            // Prevent toggling own admin status
+            if (user.account_number === this.user.account_number) {
+                this.showToast('Cannot modify your own admin status', 'error');
+                return;
+            }
+            
+            const action = user.is_admin ? 'revoke admin privileges from' : 'grant admin privileges to';
+            const actionShort = user.is_admin ? 'revoke' : 'grant';
+            
+            if (!confirm(`${action} ${user.character_name}?`)) {
+                // Revert checkbox state if cancelled
+                await this.searchUsers();
                 return;
             }
             
@@ -447,11 +457,13 @@ createApp({
                     throw new Error(data.error || 'Failed to update admin status');
                 }
                 
-                this.showToast(data.message, 'success');
+                this.showToast(`✓ ${data.message}`, 'success');
                 await this.searchUsers();
                 
             } catch (err) {
                 this.showToast(err.message, 'error');
+                // Revert on error
+                await this.searchUsers();
             }
         },
         
