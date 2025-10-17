@@ -36,6 +36,7 @@ class User(db.Model):
     balance = db.Column(db.Float, default=1000.0, nullable=False)  # New users start with $1000
     is_admin = db.Column(db.Boolean, default=False)
     profile_picture = db.Column(db.String(255), nullable=True)  # URL or emoji for profile picture
+    free_spins = db.Column(db.Integer, default=0, nullable=False)  # Available free spins for Starlight Smuggler
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -55,7 +56,8 @@ class User(db.Model):
             'faction': self.faction,
             'created_at': self.created_at.isoformat(),
             'is_admin': self.is_admin,
-            'profile_picture': self.profile_picture
+            'profile_picture': self.profile_picture,
+            'free_spins': self.free_spins
         }
         if include_balance:
             data['balance'] = round(self.balance, 2)

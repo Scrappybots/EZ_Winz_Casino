@@ -2,6 +2,7 @@
 Casino game logic - Server-side slot machine engines
 """
 import random
+import time
 from .models import db, User, CasinoConfig
 from .transactions import create_transaction
 
@@ -202,16 +203,24 @@ def spin_starlight_smuggler(player_account, bet_amount):
         # Total bet is per payline * number of paylines
         total_bet = bet_amount * len(STARLIGHT_PAYLINES)
         
-        # Process bet
-        house = get_casino_house_account()
-        transaction, error = create_transaction(
-            player, house, total_bet,
-            memo="Starlight Smuggler bet",
-            transaction_type='casino_bet'
-        )
+        # Check if player has free spins available
+        using_free_spin = player.free_spins > 0
         
-        if error:
-            return {'error': error}
+        # Process bet only if not using free spins
+        house = get_casino_house_account()
+        if not using_free_spin:
+            transaction, error = create_transaction(
+                player, house, total_bet,
+                memo="Starlight Smuggler bet",
+                transaction_type='casino_bet'
+            )
+            
+            if error:
+                return {'error': error}
+        else:
+            # Decrement free spins
+            player.free_spins -= 1
+            db.session.commit()
         
         # Generate 5x3 grid
         grid = [
@@ -220,9 +229,13 @@ def spin_starlight_smuggler(player_account, bet_amount):
             [random.choice(STARLIGHT_SYMBOLS) for _ in range(5)]
         ]
         
-        # Check for scatter bonus
+        # Check for scatter bonus (only award on non-free spins)
         scatter_count = sum(row.count(STARLIGHT_SCATTER) for row in grid)
-        bonus_spins = 5 if scatter_count >= 3 else 0
+        bonus_spins_awarded = 0
+        if not using_free_spin and scatter_count >= 3:
+            bonus_spins_awarded = 5
+            player.free_spins += bonus_spins_awarded
+            db.session.commit()
         
         # Calculate winnings across all paylines
         total_win_multiplier = 0
@@ -241,7 +254,7 @@ def spin_starlight_smuggler(player_account, bet_amount):
         
         win_amount = bet_amount * total_win_multiplier
         
-        # Process winnings
+        # Process winnings if any
         if win_amount > 0:
             win_transaction, error = create_transaction(
                 house, player, win_amount,
@@ -254,12 +267,14 @@ def spin_starlight_smuggler(player_account, bet_amount):
         return {
             'grid': grid,
             'bet_per_line': bet_amount,
-            'total_bet': total_bet,
+            'total_bet': total_bet if not using_free_spin else 0,
             'win_multiplier': total_win_multiplier,
             'win_amount': win_amount,
             'winning_lines': winning_lines,
             'scatter_count': scatter_count,
-            'bonus_spins': bonus_spins,
+            'bonus_spins_awarded': bonus_spins_awarded,
+            'free_spins_remaining': player.free_spins,
+            'was_free_spin': using_free_spin,
             'balance': player.balance
         }
         

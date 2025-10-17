@@ -294,6 +294,12 @@
                 <!-- Starlight Smuggler -->
                 <div v-if="selectedGame === 'starlight'" class="slot-machine starlight-smuggler">
                     <h2 class="game-title glitch-text" data-text="STARLIGHT SMUGGLER">STARLIGHT SMUGGLER</h2>
+                    
+                    <!-- Free Spins Display -->
+                    <div v-if="user.free_spins > 0" class="free-spins-banner">
+                        🌀 {{ user.free_spins }} FREE SPINS AVAILABLE! 🌀
+                    </div>
+                    
                     <div class="slot-grid">
                         <div v-for="(row, rowIdx) in starlightGrid" :key="rowIdx" class="grid-row">
                             <div v-for="(symbol, colIdx) in row" :key="colIdx" class="symbol">
@@ -305,22 +311,25 @@
                         <button @click="decreaseBet('starlight')" class="btn-control">-</button>
                         <div class="bet-display">
                             <div>BET/LINE: ¤{{ starlightBet }}</div>
-                            <div class="small">Total: ¤{{ starlightBet * 9 }}</div>
+                            <div class="small">Total: ¤{{ user.free_spins > 0 ? 'FREE SPIN!' : starlightBet * 9 }}</div>
                         </div>
                         <button @click="increaseBet('starlight')" class="btn-control">+</button>
                     </div>
                     <button @click="spinStarlight" :disabled="spinning" class="btn-spin">
-                        {{ spinning ? 'SPINNING...' : 'SPIN' }}
+                        {{ spinning ? 'SPINNING...' : (user.free_spins > 0 ? 'FREE SPIN!' : 'SPIN') }}
                     </button>
                     <div v-if="lastResult" class="result-display" :class="{ win: lastResult.win_amount > 0 }">
+                        <div v-if="lastResult.was_free_spin" class="free-spin-notice">
+                            ✨ FREE SPIN USED! ✨
+                        </div>
                         <div v-if="lastResult.win_amount > 0">
                             🎉 WIN on {{ lastResult.winning_lines.length }} line(s)! 
                             {{ lastResult.win_multiplier }}x = ¤{{ formatBalance(lastResult.win_amount) }}
                         </div>
-                        <div v-if="lastResult.bonus_spins > 0" class="bonus-alert">
-                            ⭐ BONUS! {{ lastResult.bonus_spins }} FREE SPINS AWARDED!
+                        <div v-if="lastResult.bonus_spins_awarded > 0" class="bonus-alert">
+                            ⭐ BONUS! {{ lastResult.bonus_spins_awarded }} FREE SPINS AWARDED!
                         </div>
-                        <div v-if="lastResult.win_amount === 0 && !lastResult.bonus_spins">
+                        <div v-if="lastResult.win_amount === 0 && !lastResult.bonus_spins_awarded">
                             Try again!
                         </div>
                     </div>

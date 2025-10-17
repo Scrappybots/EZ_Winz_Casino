@@ -354,6 +354,15 @@ createApp({
                     this.starlightGrid = data.grid;
                     this.lastResult = data;
                     this.user.balance = data.balance;
+                    this.user.free_spins = data.free_spins_remaining;
+                    
+                    if (data.was_free_spin) {
+                        this.showToast('✨ Free spin used!', 'info');
+                    }
+                    
+                    if (data.bonus_spins_awarded > 0) {
+                        this.showToast(`🎉 ${data.bonus_spins_awarded} FREE SPINS AWARDED!`, 'success');
+                    }
                     
                     if (data.win_amount > 0) {
                         this.showToast(`You won ¤${data.win_amount}!`, 'success');
