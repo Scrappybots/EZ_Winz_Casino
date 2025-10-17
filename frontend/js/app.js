@@ -71,6 +71,8 @@ createApp({
             factionCreditsModal: null,
             factionCreditsAmount: 0,
             factionCreditsReason: '',
+            newFactionName: '',
+            newFactionDescription: '',
             
             // Notifications
             toasts: []
@@ -352,6 +354,15 @@ createApp({
                     this.starlightGrid = data.grid;
                     this.lastResult = data;
                     this.user.balance = data.balance;
+                    this.user.free_spins = data.free_spins_remaining;
+                    
+                    if (data.was_free_spin) {
+                        this.showToast('✨ Free spin used!', 'info');
+                    }
+                    
+                    if (data.bonus_spins_awarded > 0) {
+                        this.showToast(`🎉 ${data.bonus_spins_awarded} FREE SPINS AWARDED!`, 'success');
+                    }
                     
                     if (data.win_amount > 0) {
                         this.showToast(`You won ¤${data.win_amount}!`, 'success');
@@ -709,6 +720,45 @@ createApp({
                 
                 this.showToast(`Added ¤${this.factionCreditsAmount} to ${data.users_affected} users in ${this.factionCreditsModal}`, 'success');
                 this.factionCreditsModal = null;
+                await this.loadFactions();
+                
+            } catch (err) {
+                this.showToast(err.message, 'error');
+            }
+        },
+        
+        async createNewFaction() {
+            try {
+                // Validate faction name
+                if (!this.newFactionName.trim()) {
+                    throw new Error('Faction name is required');
+                }
+                
+                const response = await fetch(`${API_BASE}/api/admin/factions/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.token}`
+                    },
+                    body: JSON.stringify({
+                        name: this.newFactionName.trim(),
+                        description: this.newFactionDescription.trim()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create faction');
+                }
+                
+                this.showToast(`Faction "${this.newFactionName}" created successfully!`, 'success');
+                
+                // Reset form
+                this.newFactionName = '';
+                this.newFactionDescription = '';
+                
+                // Refresh faction list
                 await this.loadFactions();
                 
             } catch (err) {

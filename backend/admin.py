@@ -308,6 +308,50 @@ def get_factions():
     return jsonify({'factions': faction_list})
 
 
+@admin_bp.route('/factions/create', methods=['POST'])
+@admin_required
+def create_faction():
+    """Create a new faction"""
+    data = request.get_json()
+    name = data.get('name', '').strip()
+    description = data.get('description', '').strip()
+    
+    if not name:
+        return jsonify({'error': 'Faction name is required'}), 400
+    
+    if len(name) > 50:
+        return jsonify({'error': 'Faction name must be 50 characters or less'}), 400
+    
+    # Check if faction name already exists (case-insensitive)
+    # Get all distinct faction names from users
+    existing_factions = db.session.query(User.faction).filter(
+        User.faction.isnot(None)
+    ).distinct().all()
+    
+    existing_faction_names = [f[0].lower() for f in existing_factions if f[0]]
+    
+    if name.lower() in existing_faction_names:
+        return jsonify({'error': f'Faction "{name}" already exists'}), 400
+    
+    # Create audit log for new faction creation
+    admin = get_current_user()
+    audit = AuditLog(
+        admin_user_id=admin.id,
+        action='FACTION_CREATE',
+        details=f"Created new faction: '{name}'" + (f" - {description}" if description else "")
+    )
+    db.session.add(audit)
+    db.session.commit()
+    
+    return jsonify({
+        'message': f'Faction "{name}" created successfully',
+        'faction': {
+            'name': name,
+            'description': description
+        }
+    })
+
+
 @admin_bp.route('/factions/<faction>/add-credits', methods=['POST'])
 @admin_required
 def add_faction_credits(faction):

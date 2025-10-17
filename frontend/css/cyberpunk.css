@@ -692,6 +692,32 @@ button:disabled {
     text-shadow: 0 0 10px var(--warning);
 }
 
+.free-spins-banner {
+    background: linear-gradient(135deg, rgba(255, 0, 255, 0.3), rgba(0, 240, 255, 0.3));
+    border: 2px solid var(--primary-magenta);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 20px 0;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--primary-magenta);
+    text-shadow: 0 0 20px var(--primary-magenta);
+    animation: freespinPulse 1s ease-in-out infinite;
+}
+
+@keyframes freespinPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 0, 255, 0.5); }
+    50% { transform: scale(1.02); box-shadow: 0 0 30px rgba(255, 0, 255, 0.8); }
+}
+
+.free-spin-notice {
+    color: var(--primary-cyan);
+    text-shadow: 0 0 10px var(--primary-cyan);
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
 /* Paytable */
 .paytable {
     margin-top: 20px;
@@ -1209,6 +1235,22 @@ button:disabled {
 
 .button-group button {
     flex: 1;
+}
+
+/* Faction Creation Form */
+.faction-create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.faction-create-form .input-group input {
+    width: 100%;
+}
+
+.faction-create-form button[type="submit"] {
+    margin-top: 10px;
 }
 
 /* Scrollbar Styling */

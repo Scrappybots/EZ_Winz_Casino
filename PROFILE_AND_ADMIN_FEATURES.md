@@ -41,6 +41,13 @@ This update adds three major features to the NeoBank & Chrome Slots application:
 ### 2. Admin Faction Management
 
 #### Backend (admin.py)
+- **Create Faction Endpoint** (`POST /api/admin/factions/create`)
+  - Creates a new faction with name and optional description
+  - Validates faction name (required, max 50 characters)
+  - Prevents duplicate faction names (case-insensitive)
+  - Creates audit log entry
+  - Returns success message with faction details
+
 - **List Factions Endpoint** (`GET /api/admin/factions/list`)
   - Returns all factions with statistics:
     - User count per faction
@@ -54,6 +61,14 @@ This update adds three major features to the NeoBank & Chrome Slots application:
   - Returns number of users affected
 
 #### Frontend
+- **Create New Faction Section** in Admin view:
+  - Form to create new factions
+  - Faction name input (required, max 50 characters)
+  - Optional description field (max 200 characters)
+  - "CREATE FACTION" button
+  - Validates input and shows toast notifications
+  - Auto-refreshes faction list after creation
+
 - **Faction Management Panel** in Admin view:
   - Displays all factions with user counts and balances
   - "Refresh Factions" button
@@ -96,6 +111,11 @@ Rate Limit: 5 requests per hour
 
 ### Admin Endpoints
 ```
+POST /api/admin/factions/create
+Body: { name: string, description?: string }
+Returns: { message: string, faction: { name: string, description: string } }
+Validates: Name required (max 50 chars), prevents duplicates (case-insensitive)
+
 GET /api/admin/factions/list
 Returns: { factions: [{ faction: string, user_count: int, total_balance: float }] }
 
