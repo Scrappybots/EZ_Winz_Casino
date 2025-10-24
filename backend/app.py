@@ -426,6 +426,28 @@ def init_database():
             )
             db.session.add(admin_account)
         
+        # Create predefined user accounts if not exist
+        predefined_users = [
+            {'character_name': 'Ralph', 'password': 'Rodney32', 'balance': 500.0},
+            {'character_name': 'Strixen', 'password': 'Forty2seven', 'balance': 750.0},
+            {'character_name': 'Chaos', 'password': 'Thelovelydog', 'balance': 1000.0}
+        ]
+        
+        for user_data in predefined_users:
+            existing_user = User.query.filter_by(character_name=user_data['character_name']).first()
+            if not existing_user:
+                from .auth import hash_password
+                from .models import generate_account_number
+                new_user = User(
+                    character_name=user_data['character_name'],
+                    password_hash=hash_password(user_data['password']),
+                    account_number=generate_account_number(),
+                    balance=user_data['balance'],
+                    is_admin=False
+                )
+                db.session.add(new_user)
+                print(f"✅ Created user: {user_data['character_name']}")
+        
         # Initialize casino game configs with generous defaults
         from .models import CasinoConfig
         games = ['glitch_grid', 'starlight_smuggler']
