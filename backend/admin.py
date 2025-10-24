@@ -2,7 +2,7 @@
 Admin panel routes and functionality
 """
 from flask import Blueprint, request, jsonify
-from .models import db, User, APIKey, AuditLog, CasinoConfig, generate_api_key
+from .models import db, User, APIKey, AuditLog, CasinoConfig, Faction, generate_api_key
 from .auth import admin_required, get_current_user, hash_password
 from .transactions import get_all_transactions, adjust_account_balance
 from datetime import datetime
@@ -289,21 +289,35 @@ def get_audit_logs():
 @admin_required
 def get_factions():
     """Get list of all factions with user counts"""
-    from sqlalchemy import func
+    factions = Faction.query.all()
     
-    factions = db.session.query(
-        User.faction,
-        func.count(User.id).label('user_count'),
-        func.sum(User.balance).label('total_balance')
-    ).group_by(User.faction).all()
+    faction_list = [faction.to_dict() for faction in factions]
     
-    faction_list = []
-    for faction, count, total_bal in factions:
-        faction_list.append({
-            'faction': faction if faction else 'None',
-            'user_count': count,
-            'total_balance': round(total_bal, 2) if total_bal else 0
-        })
+    # Also include "orphan" factions (users with faction names not in Faction table)
+    orphan_factions = db.session.query(User.faction).filter(
+        User.faction.isnot(None)
+    ).distinct().all()
+    
+    orphan_names = [f[0] for f in orphan_factions if f[0]]
+    registered_names = [f['name'] for f in faction_list]
+    
+    for orphan_name in orphan_names:
+        if orphan_name not in registered_names:
+            # Count users in this orphan faction
+            from sqlalchemy import func
+            stats = db.session.query(
+                func.count(User.id).label('member_count'),
+                func.sum(User.balance).label('total_balance')
+            ).filter(User.faction == orphan_name).first()
+            
+            faction_list.append({
+                'id': None,
+                'name': orphan_name,
+                'description': '(Unregistered faction)',
+                'created_at': None,
+                'member_count': stats.member_count if stats else 0,
+                'total_balance': round(stats.total_balance, 2) if stats and stats.total_balance else 0
+            })
     
     return jsonify({'factions': faction_list})
 
@@ -322,16 +336,17 @@ def create_faction():
     if len(name) > 50:
         return jsonify({'error': 'Faction name must be 50 characters or less'}), 400
     
-    # Check if faction name already exists (case-insensitive)
-    # Get all distinct faction names from users
-    existing_factions = db.session.query(User.faction).filter(
-        User.faction.isnot(None)
-    ).distinct().all()
-    
-    existing_faction_names = [f[0].lower() for f in existing_factions if f[0]]
-    
-    if name.lower() in existing_faction_names:
+    # Check if faction already exists (case-insensitive)
+    existing = Faction.query.filter(db.func.lower(Faction.name) == name.lower()).first()
+    if existing:
         return jsonify({'error': f'Faction "{name}" already exists'}), 400
+    
+    # Create new faction
+    faction = Faction(
+        name=name,
+        description=description if description else None
+    )
+    db.session.add(faction)
     
     # Create audit log for new faction creation
     admin = get_current_user()
@@ -345,10 +360,7 @@ def create_faction():
     
     return jsonify({
         'message': f'Faction "{name}" created successfully',
-        'faction': {
-            'name': name,
-            'description': description
-        }
+        'faction': faction.to_dict()
     })
 
 

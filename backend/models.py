@@ -158,3 +158,30 @@ class CasinoConfig(db.Model):
             'payout_percentage': self.payout_percentage,
             'updated_at': self.updated_at.isoformat()
         }
+
+
+class Faction(db.Model):
+    """Faction/guild model"""
+    __tablename__ = 'factions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    description = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        # Get member count and total balance
+        from sqlalchemy import func
+        stats = db.session.query(
+            func.count(User.id).label('member_count'),
+            func.sum(User.balance).label('total_balance')
+        ).filter(User.faction == self.name).first()
+        
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'created_at': self.created_at.isoformat(),
+            'member_count': stats.member_count if stats else 0,
+            'total_balance': round(stats.total_balance, 2) if stats and stats.total_balance else 0
+        }

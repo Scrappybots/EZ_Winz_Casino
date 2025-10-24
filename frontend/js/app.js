@@ -68,6 +68,7 @@ createApp({
             apiKeys: [],
             casinoGames: [],
             factions: [],
+            availableFactions: [],  // For dropdowns
             factionCreditsModal: null,
             factionCreditsAmount: 0,
             factionCreditsReason: '',
@@ -88,6 +89,9 @@ createApp({
         } else {
             this.loading = false;
         }
+        
+        // Load available factions for dropdowns
+        this.loadAvailableFactions();
     },
     
     methods: {
@@ -689,6 +693,19 @@ createApp({
                 
             } catch (err) {
                 this.showToast(err.message, 'error');
+            }
+        },
+        
+        async loadAvailableFactions() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/factions`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.availableFactions = data.factions || [];
+                }
+            } catch (err) {
+                console.error('Failed to load available factions:', err);
             }
         },
         

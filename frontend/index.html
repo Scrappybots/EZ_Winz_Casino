@@ -66,6 +66,11 @@
                 </form>
 
                 <div v-if="error" class="error-message">{{ error }}</div>
+
+                <!-- Authentication Disclaimer -->
+                <div class="auth-disclaimer">
+                    <p>⚠️ For entertainment purposes only. This is a fictional role-playing system with no real monetary value.</p>
+                </div>
             </div>
         </div>
 
@@ -96,6 +101,12 @@
                 <div class="balance-display">
                     <div class="balance-label">ACCOUNT BALANCE</div>
                     <div class="balance-amount">¤{{ formatBalance(user.balance) }}</div>
+                </div>
+
+                <!-- Banking Disclaimer -->
+                <div class="banking-disclaimer neon-container">
+                    <h4>💰 BANKING DISCLAIMER</h4>
+                    <p>This is a fictional banking system for entertainment purposes only. All credits and transactions have no real-world value.</p>
                 </div>
 
                 <div class="account-info neon-container">
@@ -240,6 +251,12 @@
                 <div class="balance-display">
                     <div class="balance-label">ACCOUNT BALANCE</div>
                     <div class="balance-amount">¤{{ formatBalance(user.balance) }}</div>
+                </div>
+
+                <!-- Casino Disclaimer -->
+                <div class="casino-disclaimer neon-container">
+                    <h4>⚠️ CASINO DISCLAIMER</h4>
+                    <p>For entertainment purposes only. All credits are fictional. Game odds and payouts are subject to change without notice.</p>
                 </div>
 
                 <div class="casino-selector">
@@ -532,6 +549,27 @@
                 {{ toast.message }}
             </div>
         </div>
+
+        <!-- Legal Disclaimer Footer -->
+        <footer class="legal-disclaimer">
+            <div class="disclaimer-content">
+                <div class="disclaimer-section">
+                    <h4>⚠️ ENTERTAINMENT PURPOSES ONLY</h4>
+                    <p>This website, casino games, and banking application are intended for entertainment and role-playing purposes only.</p>
+                </div>
+                <div class="disclaimer-section">
+                    <h4>💰 FAKE CREDITS</h4>
+                    <p>All credits, currency, and transactions are entirely fictional. No real money or value is involved.</p>
+                </div>
+                <div class="disclaimer-section">
+                    <h4>🎲 ODDS DISCLAIMER</h4>
+                    <p>Game odds, payouts, and configurations are subject to change at any time without notice.</p>
+                </div>
+            </div>
+            <div class="disclaimer-footer">
+                <p>© 2025 Beautiful Chaos - Neotropolis LARP System</p>
+            </div>
+        </footer>
     </div>
 
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>

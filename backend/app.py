@@ -90,6 +90,16 @@ def api_login():
     return jsonify(result)
 
 
+@app.route('/api/v1/factions', methods=['GET'])
+def get_available_factions():
+    """Get list of available factions for registration/profile"""
+    from .models import Faction
+    factions = Faction.query.order_by(Faction.name).all()
+    return jsonify({
+        'factions': [{'name': f.name, 'description': f.description} for f in factions]
+    })
+
+
 # ============================================================================
 # Account & Banking Routes
 # ============================================================================
